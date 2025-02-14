@@ -1,48 +1,24 @@
 const express = require('express');
-const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const morgan = require('morgan'); // For logging HTTP requests
+const morgan = require('morgan');
 const connectDB = require('./config/db');
 require('dotenv').config();
+const cors = require('cors');
+// Allow all origins
 
 const app = express();
-
-// CORS Configuration
-const allowedOrigins = [
-  'https://zesty-biscuit-6e615b.netlify.app',
-  'http://localhost:3000',
-  process.env.FRONTEND_URL, // Allow requests from your frontend
-];
-
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      console.log('Origin:', origin); // Log the origin for debugging
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    credentials: true, // Allow cookies and credentials
-  })
-);
-
+app.use(cors()); 
 // Middleware
 app.use(express.json());
-app.use(morgan('dev')); // Log HTTP requests in development mode
+app.use(morgan('dev'));
 
-// Serve static files from the 'uploads' directory
+// Serve static files from 'uploads' directory
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true }); // Create directory recursively if it doesn't exist
+  fs.mkdirSync(uploadsDir, { recursive: true });
 }
-
-app.use('/api/uploads', (req, res, next) => {
-  console.log('Request for static file:', req.url); // Log the requested file
-  next();
-}, express.static(uploadsDir));
+app.use('/api/uploads', express.static(uploadsDir));
 
 // Connect to MongoDB
 connectDB();
@@ -57,22 +33,25 @@ app.use('/api/slider1', slider1Routes);
 app.use('/api/slider2', slider2Routes);
 app.use('/api/slider3', slider3Routes);
 
-// Health Check Endpoint
+// Health Check
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ message: 'Server is healthy' });
+  res.status(200).json({ message: 'Server is running' });
 });
 
-// 404 Handler for Undefined Routes
-app.use((req, res, next) => {
+// Handle favicon.ico requests
+app.get('/favicon.ico', (req, res) => res.status(204));
+
+// 404 Handler
+app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
 // Global Error Handler
 app.use((err, req, res, next) => {
-  console.error(err.stack); // Log the error stack trace
-  res.status(500).json({ message: 'Something went wrong!' });
+  console.error(err.stack);
+  res.status(500).json({ message: 'Server error' });
 });
 
 // Start Server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
